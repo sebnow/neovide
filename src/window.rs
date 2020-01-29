@@ -7,7 +7,7 @@ use skulpin::skia_safe::icu;
 use skulpin::winit::dpi::LogicalSize;
 use skulpin::winit::event::{ElementState, Event, MouseScrollDelta, StartCause, WindowEvent};
 use skulpin::winit::event_loop::{ControlFlow, EventLoop};
-use skulpin::winit::window::{Icon, WindowBuilder};
+use skulpin::winit::window::{CursorIcon, Icon, WindowBuilder};
 
 use crate::bridge::{construct_keybinding_string, BRIDGE, UiCommand};
 use crate::renderer::Renderer;
@@ -52,6 +52,7 @@ pub fn ui_loop() {
         .with_title("Neovide")
         .with_inner_size(logical_size)
         .with_window_icon(Some(icon))
+        .with_decorations(false)
         .build(&event_loop)
         .expect("Failed to create window"));
 
@@ -106,6 +107,33 @@ pub fn ui_loop() {
                 },
                 ..
             } => {
+                let window_size = window.inner_size();
+                if position.x < 10.0 {
+                    if position.y < 10.0 {
+                        window.set_cursor_icon(CursorIcon::NwResize);
+                    } else if position.y as f64 > window_size.height - 10.0 {
+                        window.set_cursor_icon(CursorIcon::SwResize);
+                    } else {
+                        window.set_cursor_icon(CursorIcon::WResize);
+                    }
+                } else if position.x as f64 > window_size.width - 10.0 {
+                    if position.y < 10.0 {
+                        window.set_cursor_icon(CursorIcon::NeResize);
+                    } else if position.y as f64 > window_size.height - 10.0 {
+                        window.set_cursor_icon(CursorIcon::SeResize);
+                    } else {
+                        window.set_cursor_icon(CursorIcon::WResize);
+                    }
+                } else {
+                    if position.y < 10.0 {
+                        window.set_cursor_icon(CursorIcon::NResize);
+                    } else if position.y as f64 > window_size.height - 10.0 {
+                        window.set_cursor_icon(CursorIcon::SResize);
+                    } else {
+                        window.set_cursor_icon(CursorIcon::Default);
+                    }
+                }
+
                 let grid_y = (position.x as f32 / renderer.font_width) as i64;
                 let grid_x = (position.y as f32 / renderer.font_height) as i64;
                 mouse_pos = (grid_x, grid_y);
@@ -171,7 +199,7 @@ pub fn ui_loop() {
                 let frame_start = Instant::now();
 
                 if REDRAW_SCHEDULER.should_draw() {
-                    if let Err(e)  = skulpin_renderer.draw(&window, |canvas, coordinate_system_helper| {
+                    if let Err(_)  = skulpin_renderer.draw(&window, |canvas, coordinate_system_helper| {
                         if renderer.draw(canvas, coordinate_system_helper) {
                             handle_new_grid_size(window.inner_size(), &renderer)
                         }
